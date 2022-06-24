@@ -1,23 +1,42 @@
 from django.db import models
-from django.contrib.auth import get_user_model#,models.User
-
+from django.contrib.auth import get_user_model
+from django.utils import timezone
+from django.urls import reverse
+from django.template.defaultfilters import slugify
 
 User = get_user_model()
-# Create your models here.
+    
 class Posts(models.Model):
-    Title = models.CharField(max_length=200)
-    Text = models.TextField()
-    Author = models.ForeignKey(User, on_delete=models.CASCADE)
-    Created_date = models.DateTimeField() 
-    Published_date = models.DateTimeField()
+    
+    STATUS_CHOICES = (
+        ("draft","Draft"),
+        ('published','Published')
+    )
+    
+    
+    title = models.CharField(max_length=250)
+    slug = models.SlugField(max_length=300,unique=True,editable=False)
+    author = models.ForeignKey(User, on_delete=models.CASCADE,related_name="blog_posts")
+    body = models.TextField()
+    publish = models.DateTimeField(default=timezone.now())
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
+    Status = models.CharField(max_length=10,choices=STATUS_CHOICES,default="draft")
+    
     
     class Meta:
-        verbose_name = "Blog_posts"
-        verbose_name_plural = "Blog_posts"
+        ordering = ("-publish",)
+        
+        
+    def save(self,*args, **kwargs):
+        self.slug = slugify(self.title)
+        super().save(*args, **kwargs) 
+        pass
     
     def __str__(self):
-        return self.name
+        return self.title
     
-        
-       
+    def get_absolute_url(self):
+        return reverse("Blog:detail",kwargs={'slug':self.slug})
+      
         
